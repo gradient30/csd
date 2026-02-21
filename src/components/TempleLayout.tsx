@@ -45,7 +45,7 @@ export default function TempleLayout() {
           <button onClick={() => navigate("/")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-gold">
             <ArrowLeft className="h-4 w-4" /> 首页
           </button>
-          <h1 className="text-lg font-bold text-gold">财神封神殿</h1>
+          <h1 className="text-lg font-bold text-gold">🐴 财神到</h1>
           <button onClick={toggleMute} className="p-2 text-gold/70 hover:text-gold">
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
