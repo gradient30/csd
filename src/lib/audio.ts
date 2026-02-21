@@ -53,25 +53,47 @@ export function playGong() {
   osc.stop(ctx.currentTime + 1.5);
 }
 
-// Firecracker burst
+// Firecracker burst - layered pops with tonal resonance for festive feel
 export function playFirecracker() {
   if (isMuted()) return;
   const ctx = getCtx();
-  for (let i = 0; i < 5; i++) {
+  const count = 6 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < count; i++) {
+    const delay = i * (40 + Math.random() * 30);
     setTimeout(() => {
-      const bufferSize = ctx.sampleRate * 0.05;
+      const t = ctx.currentTime;
+      // Sharp pop noise
+      const bufferSize = Math.floor(ctx.sampleRate * (0.03 + Math.random() * 0.03));
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let j = 0; j < bufferSize; j++) {
-        data[j] = (Math.random() * 2 - 1) * (1 - j / bufferSize);
+        const env = Math.pow(1 - j / bufferSize, 3);
+        data[j] = (Math.random() * 2 - 1) * env;
       }
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      source.connect(gain).connect(ctx.destination);
+      const popGain = ctx.createGain();
+      popGain.gain.setValueAtTime(0.25 + Math.random() * 0.15, t);
+      // Bandpass for crackle character
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 2000 + Math.random() * 3000;
+      bp.Q.value = 1.5;
+      source.connect(bp).connect(popGain).connect(ctx.destination);
       source.start();
-    }, i * 80);
+
+      // Tonal ping for festive brightness
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800 + Math.random() * 1200, t);
+      osc.frequency.exponentialRampToValueAtTime(200 + Math.random() * 200, t + 0.08);
+      oscGain.gain.setValueAtTime(0.12, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      osc.connect(oscGain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.1);
+    }, delay);
   }
 }
 

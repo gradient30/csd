@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -140,67 +140,73 @@ function HorseGame() {
   const [horseY, setHorseY] = useState(50);
   const [coins, setCoins] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [timeLeft, setTimeLeft] = useState(15);
+  const horseYRef = useRef(50);
+  const scoreRef = useRef(0);
 
   const startGame = useCallback(() => {
     setPlaying(true);
     setScore(0);
+    scoreRef.current = 0;
+    setCoins([]);
     setTimeLeft(15);
+    setHorseY(50);
+    horseYRef.current = 50;
     playGong();
   }, []);
 
-  // Simple game loop
-  useState(() => {
+  useEffect(() => {
     if (!playing) return;
+    let coinId = 0;
     const interval = setInterval(() => {
       setTimeLeft((t) => {
-        if (t <= 0) {
+        if (t <= 1) {
           setPlaying(false);
           clearInterval(interval);
-          addIncense(score);
-          updateTodayRecord({ horseGameScore: score });
+          addIncense(scoreRef.current);
+          updateTodayRecord({ horseGameScore: scoreRef.current });
           return 0;
         }
         return t - 1;
       });
 
-      // Spawn coins
       if (Math.random() > 0.4) {
-        setCoins((prev) => [...prev, { id: Date.now(), x: 100, y: 20 + Math.random() * 60 }]);
+        setCoins((prev) => [...prev, { id: coinId++, x: 100, y: 20 + Math.random() * 60 }]);
       }
 
-      // Move coins
       setCoins((prev) =>
         prev
-          .map((c) => ({ ...c, x: c.x - 5 }))
+          .map((c) => ({ ...c, x: c.x - 6 }))
           .filter((c) => {
-            if (c.x < 15 && Math.abs(c.y - horseY) < 15) {
+            if (c.x < 18 && c.x > 2 && Math.abs(c.y - horseYRef.current) < 15) {
               playCoin();
-              setScore((s) => s + 1);
+              scoreRef.current += 1;
+              setScore(scoreRef.current);
               return false;
             }
             return c.x > -5;
           })
       );
-    }, 200);
+    }, 300);
 
     return () => clearInterval(interval);
-  });
+  }, [playing]);
 
   return (
     <div className="space-y-4">
       <div
-        className="relative h-[200px] overflow-hidden rounded-xl border border-gold/20 bg-gradient-to-r from-crimson-dark to-background"
+        className="relative h-[200px] cursor-pointer overflow-hidden rounded-xl border border-gold/20 bg-gradient-to-r from-crimson-dark to-background"
         onClick={(e) => {
           if (!playing) return;
           const rect = e.currentTarget.getBoundingClientRect();
           const y = ((e.clientY - rect.top) / rect.height) * 100;
           setHorseY(y);
+          horseYRef.current = y;
         }}
       >
         {playing && (
           <>
             <div
-              className="animate-horse-gallop absolute text-3xl transition-all duration-200"
+              className="absolute text-3xl transition-all duration-200"
               style={{ left: "10%", top: `${horseY}%`, transform: "translateY(-50%)" }}
             >
               🐴
@@ -208,13 +214,13 @@ function HorseGame() {
             {coins.map((c) => (
               <div
                 key={c.id}
-                className="absolute text-xl transition-all"
+                className="absolute text-xl transition-all duration-200"
                 style={{ left: `${c.x}%`, top: `${c.y}%` }}
               >
                 💰
               </div>
             ))}
-            <div className="absolute right-2 top-2 rounded bg-background/50 px-2 py-1 text-sm text-gold">
+            <div className="absolute right-2 top-2 rounded bg-background/80 px-3 py-1 text-sm font-bold text-gold">
               ⏱ {timeLeft}s | 💰 {score}
             </div>
           </>
@@ -222,7 +228,7 @@ function HorseGame() {
         {!playing && (
           <div className="flex h-full flex-col items-center justify-center">
             <p className="text-3xl">🐴💰</p>
-            <p className="mt-2 text-sm text-muted-foreground">点击屏幕控制马的位置</p>
+            <p className="mt-2 text-sm text-muted-foreground">点击屏幕上下移动马，接住元宝！</p>
             {score > 0 && <p className="mt-1 text-gold">上次得分：{score}</p>}
           </div>
         )}
