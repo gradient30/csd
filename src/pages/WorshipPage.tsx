@@ -92,6 +92,24 @@ function WorshipAltar() {
   );
 }
 
+// Hint system helpers
+function getHintState(): { date: string; count: number } {
+  const date = localStorage.getItem("caishen_hint_date") || "";
+  const count = parseInt(localStorage.getItem("caishen_hint_count") || "3");
+  const today = new Date().toISOString().split("T")[0];
+  if (date !== today) {
+    localStorage.setItem("caishen_hint_date", today);
+    localStorage.setItem("caishen_hint_count", "3");
+    return { date: today, count: 3 };
+  }
+  return { date, count };
+}
+
+function useHintCount() {
+  const hintState = getHintState();
+  return parseInt(localStorage.getItem("caishen_hint_count") || String(hintState.count));
+}
+
 // Riddle game
 function RiddleGame() {
   const [currentIdx, setCurrentIdx] = useState(Math.floor(Math.random() * RIDDLES.length));
@@ -100,6 +118,9 @@ function RiddleGame() {
   const [userAnswer, setUserAnswer] = useState("");
   const [result, setResult] = useState<"correct" | "wrong" | null>(null);
   const [riddleScore, setRiddleScore] = useState(getTodayRecord()?.riddlesSolved || 0);
+  const [hintRemaining, setHintRemaining] = useState(useHintCount);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [peekedAnswer, setPeekedAnswer] = useState(false);
 
   const riddle = RIDDLES[currentIdx];
 
@@ -109,6 +130,7 @@ function RiddleGame() {
     setShowAnswer(false);
     setUserAnswer("");
     setResult(null);
+    setPeekedAnswer(false);
     setTimeout(() => {
       setShaking(false);
       setCurrentIdx(Math.floor(Math.random() * RIDDLES.length));
@@ -120,20 +142,40 @@ function RiddleGame() {
     const correct = userAnswer.trim() === riddle.answer.trim();
     setResult(correct ? "correct" : "wrong");
     setShowAnswer(true);
-    if (correct) {
+    if (correct && !peekedAnswer) {
       playSuccess();
       const newScore = riddleScore + 1;
       setRiddleScore(newScore);
       addIncense(15);
       updateTodayRecord({ riddlesSolved: newScore });
-      // Card unlock at 5 riddles
       if (newScore >= 5 && riddleScore < 5) {
         notifyCardUnlock(unlockRandomCard());
       }
       notifyBadges(checkBadges());
+    } else if (correct && peekedAnswer) {
+      playSuccess();
+      toast.info("看过答案不计分哦～", { duration: 2000 });
     } else {
       playBell();
     }
+  };
+
+  const peekAnswer = () => {
+    if (hintRemaining <= 0) return;
+    const newCount = hintRemaining - 1;
+    setHintRemaining(newCount);
+    localStorage.setItem("caishen_hint_count", String(newCount));
+    setPeekedAnswer(true);
+    setShowAnswer(true);
+    setResult(null);
+  };
+
+  const handleShare = () => {
+    const newCount = hintRemaining + 10;
+    setHintRemaining(newCount);
+    localStorage.setItem("caishen_hint_count", String(newCount));
+    setShowShareDialog(false);
+    toast.success("🎉 分享成功！+10次看答案机会", { duration: 2500 });
   };
 
   return (
@@ -148,25 +190,56 @@ function RiddleGame() {
         </motion.div>
       </div>
       <div className="rounded-xl border border-gold/20 bg-card p-6 text-center">
-        <p className="mb-2 text-xs text-muted-foreground">第 {currentIdx + 1} 签</p>
+        <p className="mb-2 text-xs text-muted-foreground">第 {currentIdx + 1} 签（共 {RIDDLES.length} 签）</p>
         <p className="mb-4 text-lg text-foreground">{riddle.question}</p>
         <p className="mb-4 text-sm text-muted-foreground">提示：{riddle.hint}</p>
         {!showAnswer ? (
-          <div className="flex gap-2">
-            <Input
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitAnswer()}
-              placeholder="输入你的答案…"
-              className="border-gold/30 bg-background text-center"
-            />
-            <Button onClick={submitAnswer} className="bg-gold text-background hover:bg-gold-light">提交</Button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitAnswer()}
+                placeholder="输入你的答案…"
+                className="border-gold/30 bg-background text-center"
+              />
+              <Button onClick={submitAnswer} className="bg-gold text-background hover:bg-gold-light">提交</Button>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={peekAnswer}
+                disabled={hintRemaining <= 0}
+                className="text-xs text-muted-foreground hover:text-gold"
+              >
+                👁️ 看答案（剩余 {hintRemaining} 次）
+              </Button>
+              {hintRemaining <= 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowShareDialog(true)}
+                  className="text-xs text-gold hover:text-gold-light"
+                >
+                  📤 分享 +10次
+                </Button>
+              )}
+            </div>
           </div>
+        ) : peekedAnswer && result === null ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="rounded-lg bg-gold/10 p-3">
+              <p className="text-sm text-muted-foreground">👁️ 答案是：</p>
+              <p className="mt-1 text-xl font-bold text-gold">{riddle.answer}</p>
+              <p className="mt-2 text-xs text-muted-foreground">（看过答案不计分）</p>
+            </div>
+          </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             {result === "correct" ? (
               <div className="rounded-lg bg-green-900/30 p-3">
-                <p className="text-lg font-bold text-green-400">🎉 答对了！+15 香火</p>
+                <p className="text-lg font-bold text-green-400">🎉 答对了！{peekedAnswer ? "（不计分）" : "+15 香火"}</p>
                 <p className="mt-1 text-gold">{riddle.answer}</p>
               </div>
             ) : (
@@ -179,6 +252,24 @@ function RiddleGame() {
         )}
       </div>
       <Button onClick={shakeSign} className="w-full bg-gold text-background hover:bg-gold-light">🎋 摇下一签</Button>
+
+      {/* Share dialog */}
+      {showShareDialog && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-xl border border-gold/30 bg-card p-5 text-center"
+        >
+          <p className="text-lg font-bold text-gold">📤 分享到朋友圈</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            分享后可获得额外10次看答案机会！
+          </p>
+          <div className="mt-4 flex gap-3">
+            <Button variant="outline" onClick={() => setShowShareDialog(false)} className="flex-1 border-border">取消</Button>
+            <Button onClick={handleShare} className="flex-1 bg-gold text-background hover:bg-gold-light">✅ 我已分享</Button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
