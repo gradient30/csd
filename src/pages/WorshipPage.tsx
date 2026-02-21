@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { addIncense, getProfile, updateTodayRecord, getTodayRecord } from "@/lib/store";
-import { playBell, playCoin, playFirecracker, playDrum, playGong } from "@/lib/audio";
+import { playBell, playCoin, playFirecracker, playDrum, playGong, playSuccess } from "@/lib/audio";
 import { RIDDLES } from "@/lib/ceremony";
-import { Flame, Coins, Sparkles, HelpCircle, Trash2 } from "lucide-react";
 
 // Worship altar
 function WorshipAltar() {
@@ -35,9 +35,7 @@ function WorshipAltar() {
 
   return (
     <div className="space-y-6">
-      {/* Altar display */}
       <div className="relative flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-gold/20 bg-gradient-to-b from-crimson-dark to-background p-8">
-        {/* Floating particles */}
         <AnimatePresence>
           {particles.map((p) => (
             <motion.div
@@ -59,7 +57,6 @@ function WorshipAltar() {
         <p className="mt-1 text-lg font-bold text-gold">今日香火：{score}</p>
       </div>
 
-      {/* Action buttons */}
       <div className="grid grid-cols-3 gap-3">
         <Button onClick={() => doAction("incense", 5)} className="flex-col gap-1 bg-crimson py-6 text-foreground hover:bg-crimson-light">
           <span className="text-2xl">🕯️</span>
@@ -78,11 +75,14 @@ function WorshipAltar() {
   );
 }
 
-// Riddle game
+// Riddle game with answer input and scoring
 function RiddleGame() {
   const [currentIdx, setCurrentIdx] = useState(Math.floor(Math.random() * RIDDLES.length));
   const [showAnswer, setShowAnswer] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [result, setResult] = useState<"correct" | "wrong" | null>(null);
+  const [riddleScore, setRiddleScore] = useState(getTodayRecord()?.riddlesSolved || 0);
 
   const riddle = RIDDLES[currentIdx];
 
@@ -90,14 +90,37 @@ function RiddleGame() {
     setShaking(true);
     playDrum();
     setShowAnswer(false);
+    setUserAnswer("");
+    setResult(null);
     setTimeout(() => {
       setShaking(false);
       setCurrentIdx(Math.floor(Math.random() * RIDDLES.length));
     }, 600);
   };
 
+  const submitAnswer = () => {
+    if (!userAnswer.trim()) return;
+    const correct = userAnswer.trim() === riddle.answer.trim();
+    setResult(correct ? "correct" : "wrong");
+    setShowAnswer(true);
+    if (correct) {
+      playSuccess();
+      const newScore = riddleScore + 1;
+      setRiddleScore(newScore);
+      addIncense(15);
+      updateTodayRecord({ riddlesSolved: newScore });
+    } else {
+      playBell();
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">已答对：{riddleScore} 题</p>
+        <p className="text-sm font-bold text-gold">累计香火 +{riddleScore * 15}</p>
+      </div>
+
       <div className="text-center">
         <motion.div
           animate={shaking ? { rotate: [-5, 5, -5, 5, 0] } : {}}
@@ -110,74 +133,104 @@ function RiddleGame() {
       <div className="rounded-xl border border-gold/20 bg-card p-6 text-center">
         <p className="mb-2 text-xs text-muted-foreground">第 {currentIdx + 1} 签</p>
         <p className="mb-4 text-lg text-foreground">{riddle.question}</p>
+        <p className="mb-4 text-sm text-muted-foreground">提示：{riddle.hint}</p>
 
-        {showAnswer ? (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="mb-1 text-sm text-muted-foreground">答案</p>
-            <p className="text-xl font-bold text-gold">{riddle.answer}</p>
-          </motion.div>
+        {!showAnswer ? (
+          <div className="flex gap-2">
+            <Input
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitAnswer()}
+              placeholder="输入你的答案…"
+              className="border-gold/30 bg-background text-center"
+            />
+            <Button onClick={submitAnswer} className="bg-gold text-background hover:bg-gold-light">
+              提交
+            </Button>
+          </div>
         ) : (
-          <p className="text-sm text-muted-foreground">提示：{riddle.hint}</p>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            {result === "correct" ? (
+              <div className="rounded-lg bg-green-900/30 p-3">
+                <p className="text-lg font-bold text-green-400">🎉 答对了！+15 香火</p>
+                <p className="mt-1 text-gold">{riddle.answer}</p>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-crimson/20 p-3">
+                <p className="text-sm text-crimson-light">❌ 不对哦～正确答案是：</p>
+                <p className="mt-1 text-xl font-bold text-gold">{riddle.answer}</p>
+              </div>
+            )}
+          </motion.div>
         )}
       </div>
 
-      <div className="flex gap-3">
-        <Button onClick={shakeSign} className="flex-1 bg-gold text-background hover:bg-gold-light">
-          🎋 摇签
-        </Button>
-        <Button onClick={() => { setShowAnswer(true); playCoin(); }} variant="outline" className="flex-1 border-gold/30 text-gold">
-          揭晓答案
-        </Button>
-      </div>
+      <Button onClick={shakeSign} className="w-full bg-gold text-background hover:bg-gold-light">
+        🎋 摇下一签
+      </Button>
     </div>
   );
 }
 
-// Simple horse game
+// Horse game with accurate timer
 function HorseGame() {
   const [playing, setPlaying] = useState(false);
   const [score, setScore] = useState(0);
   const [horseY, setHorseY] = useState(50);
   const [coins, setCoins] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(20);
   const horseYRef = useRef(50);
   const scoreRef = useRef(0);
+  const playingRef = useRef(false);
 
   const startGame = useCallback(() => {
     setPlaying(true);
+    playingRef.current = true;
     setScore(0);
     scoreRef.current = 0;
     setCoins([]);
-    setTimeLeft(15);
+    setTimeLeft(20);
     setHorseY(50);
     horseYRef.current = 50;
     playGong();
   }, []);
 
+  // Separate accurate 1-second timer
   useEffect(() => {
     if (!playing) return;
-    let coinId = 0;
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
+          playingRef.current = false;
           setPlaying(false);
-          clearInterval(interval);
-          addIncense(scoreRef.current);
+          addIncense(scoreRef.current * 2);
           updateTodayRecord({ horseGameScore: scoreRef.current });
           return 0;
         }
         return t - 1;
       });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [playing]);
 
-      if (Math.random() > 0.4) {
-        setCoins((prev) => [...prev, { id: coinId++, x: 100, y: 20 + Math.random() * 60 }]);
+  // Separate game loop for coin movement (faster tick)
+  useEffect(() => {
+    if (!playing) return;
+    let coinId = 0;
+    const gameLoop = setInterval(() => {
+      if (!playingRef.current) return;
+
+      // Spawn coins
+      if (Math.random() > 0.5) {
+        setCoins((prev) => [...prev, { id: coinId++, x: 100, y: 10 + Math.random() * 75 }]);
       }
 
+      // Move coins & check collision
       setCoins((prev) =>
         prev
-          .map((c) => ({ ...c, x: c.x - 6 }))
+          .map((c) => ({ ...c, x: c.x - 4 }))
           .filter((c) => {
-            if (c.x < 18 && c.x > 2 && Math.abs(c.y - horseYRef.current) < 15) {
+            if (c.x < 18 && c.x > 2 && Math.abs(c.y - horseYRef.current) < 14) {
               playCoin();
               scoreRef.current += 1;
               setScore(scoreRef.current);
@@ -186,50 +239,55 @@ function HorseGame() {
             return c.x > -5;
           })
       );
-    }, 300);
-
-    return () => clearInterval(interval);
+    }, 250);
+    return () => clearInterval(gameLoop);
   }, [playing]);
 
   return (
     <div className="space-y-4">
       <div
-        className="relative h-[200px] cursor-pointer overflow-hidden rounded-xl border border-gold/20 bg-gradient-to-r from-crimson-dark to-background"
+        className="relative h-[220px] cursor-pointer overflow-hidden rounded-xl border border-gold/20 bg-gradient-to-r from-crimson-dark to-background"
         onClick={(e) => {
           if (!playing) return;
           const rect = e.currentTarget.getBoundingClientRect();
           const y = ((e.clientY - rect.top) / rect.height) * 100;
-          setHorseY(y);
-          horseYRef.current = y;
+          setHorseY(Math.max(5, Math.min(90, y)));
+          horseYRef.current = Math.max(5, Math.min(90, y));
         }}
       >
         {playing && (
           <>
             <div
-              className="absolute text-3xl transition-all duration-200"
+              className="absolute text-3xl transition-all duration-150"
               style={{ left: "10%", top: `${horseY}%`, transform: "translateY(-50%)" }}
             >
               🐴
             </div>
             {coins.map((c) => (
-              <div
+              <motion.div
                 key={c.id}
-                className="absolute text-xl transition-all duration-200"
+                className="absolute text-xl"
                 style={{ left: `${c.x}%`, top: `${c.y}%` }}
+                initial={{ scale: 1 }}
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
               >
                 💰
-              </div>
+              </motion.div>
             ))}
-            <div className="absolute right-2 top-2 rounded bg-background/80 px-3 py-1 text-sm font-bold text-gold">
-              ⏱ {timeLeft}s | 💰 {score}
+            <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded-lg bg-background/90 px-4 py-1.5 text-sm font-bold">
+              <span className="text-crimson">⏱ {timeLeft}s</span>
+              <span className="mx-2 text-muted-foreground">|</span>
+              <span className="text-gold">💰 {score} 枚</span>
             </div>
           </>
         )}
         {!playing && (
           <div className="flex h-full flex-col items-center justify-center">
-            <p className="text-3xl">🐴💰</p>
+            <p className="text-4xl">🐴💰</p>
             <p className="mt-2 text-sm text-muted-foreground">点击屏幕上下移动马，接住元宝！</p>
-            {score > 0 && <p className="mt-1 text-gold">上次得分：{score}</p>}
+            <p className="mt-1 text-xs text-muted-foreground">每局 20 秒，每个元宝 +2 香火</p>
+            {score > 0 && <p className="mt-1 font-bold text-gold">上次得分：{score} 枚</p>}
           </div>
         )}
       </div>
@@ -242,7 +300,7 @@ function HorseGame() {
   );
 }
 
-// Sweep poverty game
+// Sweep poverty game with prominent scoring
 function SweepGame() {
   const [items, setItems] = useState([
     { id: 1, text: "穷", x: 30, y: 40, swept: false },
@@ -252,25 +310,34 @@ function SweepGame() {
     { id: 5, text: "灾", x: 60, y: 50, swept: false },
   ]);
   const [score, setScore] = useState(0);
+  const [totalIncense, setTotalIncense] = useState(0);
 
   const sweepItem = (id: number) => {
     playFirecracker();
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, swept: true } : it)));
-    setScore((s) => s + 10);
+    const newScore = score + 10;
+    setScore(newScore);
+    setTotalIncense((t) => t + 10);
     addIncense(10);
-    updateTodayRecord({ sweepScore: score + 10 });
+    updateTodayRecord({ sweepScore: newScore });
   };
 
   const allSwept = items.every((i) => i.swept);
 
   const reset = () => {
     setItems((prev) => prev.map((it) => ({ ...it, swept: false, x: 20 + Math.random() * 60, y: 20 + Math.random() * 60 })));
+    setScore(0);
   };
 
   return (
     <div className="space-y-4">
+      {/* Score banner */}
+      <div className="flex items-center justify-between rounded-lg bg-gold/10 px-4 py-2">
+        <p className="text-sm text-foreground">本轮得分：<span className="font-bold text-gold">{score}</span></p>
+        <p className="text-sm text-foreground">累计香火：<span className="font-bold text-gold">+{totalIncense}</span></p>
+      </div>
+
       <div className="relative h-[250px] overflow-hidden rounded-xl border border-gold/20 bg-card">
-        {/* Door exit indicator */}
         <div className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-l border-dashed border-gold/20 bg-gold/5 text-xs text-gold/50">
           🚪出门
         </div>
@@ -283,6 +350,7 @@ function SweepGame() {
                 initial={{ scale: 1 }}
                 exit={{ x: 200, opacity: 0, scale: 0 }}
                 whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.8 }}
                 onClick={() => sweepItem(item.id)}
                 className="absolute flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-lg font-bold text-crimson"
                 style={{ left: `${item.x}%`, top: `${item.y}%` }}
@@ -295,16 +363,17 @@ function SweepGame() {
 
         {allSwept && (
           <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="flex h-full flex-col items-center justify-center">
-            <p className="text-3xl">🎉</p>
-            <p className="mt-2 font-bold text-gold">穷运已除！福运来！</p>
+            <p className="text-4xl">🎉</p>
+            <p className="mt-2 text-lg font-bold text-gold">穷运已除！福运来！</p>
+            <p className="mt-1 text-sm text-muted-foreground">获得 {score} 香火值</p>
           </motion.div>
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">点击扫除穷字 | 得分：{score}</p>
+      <div className="flex gap-3">
+        <p className="flex-1 self-center text-sm text-muted-foreground">👆 点击扫除穷字，每个 +10 香火</p>
         <Button onClick={reset} variant="outline" size="sm" className="border-gold/30 text-gold">
-          重新来
+          🔄 重新来
         </Button>
       </div>
     </div>
