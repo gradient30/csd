@@ -1,21 +1,50 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getProfile, LEVEL_NAMES } from "@/lib/store";
 import { NPC_PLAYERS } from "@/lib/ceremony";
 import { Trophy, Medal, Crown } from "lucide-react";
 
+// Simulate NPC growth each visit — deterministic per session via sessionStorage
+function getSimulatedNPCs() {
+  const key = "npc_session_seed";
+  let seed = Number(sessionStorage.getItem(key));
+  if (!seed) {
+    seed = Date.now();
+    sessionStorage.setItem(key, String(seed));
+  }
+  // Simple seeded pseudo-random
+  const rand = (s: number) => {
+    const x = Math.sin(s) * 10000;
+    return x - Math.floor(x);
+  };
+  return NPC_PLAYERS.map((npc, i) => {
+    const fluctuation = Math.floor(rand(seed + i * 7) * 500) - 100; // -100 ~ +400
+    const newIncense = Math.max(npc.incense + fluctuation, 100);
+    // Recalc level
+    const thresholds = [0, 100, 300, 600, 1000, 2000, 4000, 7000, 12000, 20000];
+    let level = 0;
+    for (let j = thresholds.length - 1; j >= 0; j--) {
+      if (newIncense >= thresholds[j]) { level = j; break; }
+    }
+    return { ...npc, incense: newIncense, level };
+  });
+}
+
 export default function LeaderboardPage() {
   const profile = getProfile();
   const [tab, setTab] = useState("daily");
 
-  // Merge user with NPCs
-  const allPlayers = [
-    ...(profile
-      ? [{ name: profile.nickname, zodiac: profile.zodiac, profession: profile.profession, incense: profile.incense, level: profile.level, isUser: true }]
-      : []),
-    ...NPC_PLAYERS.map((n) => ({ ...n, isUser: false })),
-  ].sort((a, b) => b.incense - a.incense);
+  const allPlayers = useMemo(() => {
+    const npcs = getSimulatedNPCs();
+    const players = [
+      ...(profile
+        ? [{ name: profile.nickname, zodiac: profile.zodiac, profession: profile.profession, incense: profile.incense, level: profile.level, isUser: true }]
+        : []),
+      ...npcs.map((n) => ({ ...n, isUser: false })),
+    ];
+    return players.sort((a, b) => b.incense - a.incense);
+  }, [profile]);
 
   const getRankIcon = (idx: number) => {
     if (idx === 0) return <Crown className="h-5 w-5 text-gold" />;
@@ -28,7 +57,7 @@ export default function LeaderboardPage() {
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: idx * 0.05 }}
+      transition={{ delay: idx * 0.03 }}
       className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
         player.isUser ? "border-gold/40 bg-gold/10" : "border-border bg-card"
       }`}
@@ -67,15 +96,11 @@ export default function LeaderboardPage() {
           <TabsTrigger value="legend" className="data-[state=active]:bg-gold/20 data-[state=active]:text-gold">传奇榜</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="daily" className="space-y-2 pt-4">
-          {allPlayers.map((p, i) => <PlayerRow key={p.name} player={p} idx={i} />)}
-        </TabsContent>
-        <TabsContent value="season" className="space-y-2 pt-4">
-          {allPlayers.map((p, i) => <PlayerRow key={p.name} player={p} idx={i} />)}
-        </TabsContent>
-        <TabsContent value="legend" className="space-y-2 pt-4">
-          {allPlayers.map((p, i) => <PlayerRow key={p.name} player={p} idx={i} />)}
-        </TabsContent>
+        {["daily", "season", "legend"].map((t) => (
+          <TabsContent key={t} value={t} className="space-y-2 pt-4">
+            {allPlayers.map((p, i) => <PlayerRow key={p.name} player={p} idx={i} />)}
+          </TabsContent>
+        ))}
       </Tabs>
 
       {!profile && (

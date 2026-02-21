@@ -14,7 +14,7 @@ function WorshipAltar() {
   let pid = 0;
 
   const addParticle = (type: string) => {
-    const newP = Array.from({ length: 6 }, () => ({
+    const newP = Array.from({ length: 3 }, () => ({
       id: pid++,
       type,
       x: 40 + Math.random() * 20,
@@ -264,16 +264,13 @@ function HorseGame() {
               🐴
             </div>
             {coins.map((c) => (
-              <motion.div
+              <div
                 key={c.id}
                 className="absolute text-xl"
                 style={{ left: `${c.x}%`, top: `${c.y}%` }}
-                initial={{ scale: 1 }}
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 0.5, repeat: Infinity }}
               >
                 💰
-              </motion.div>
+              </div>
             ))}
             <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded-lg bg-background/90 px-4 py-1.5 text-sm font-bold">
               <span className="text-crimson">⏱ {timeLeft}s</span>
