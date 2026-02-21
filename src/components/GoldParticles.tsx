@@ -3,7 +3,7 @@ import { memo, useMemo } from "react";
 export const GoldParticles = memo(() => {
   const coins = useMemo(
     () =>
-      Array.from({ length: 15 }, (_, i) => ({
+      Array.from({ length: 8 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         delay: Math.random() * 8,
