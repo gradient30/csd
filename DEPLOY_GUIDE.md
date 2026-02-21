@@ -24,9 +24,9 @@
 | 仓库类型 | 访问地址 | `VITE_BASE_URL` | `404.html` 的 `base` |
 |----------|----------|-----------------|----------------------|
 | **用户级**（`username.github.io`） | `https://username.github.io/` | `/` | `''` |
-| **项目级**（如 `fortune-forge-fest`） | `https://username.github.io/fortune-forge-fest/` | `/fortune-forge-fest/` | `'/fortune-forge-fest'` |
+| **项目级**（如 `csd`） | `https://username.github.io/csd/` | `/csd/` | `'/csd'` |
 
-> ⚠️ 当前配置为**项目级**（`/fortune-forge-fest/`）。如果你的仓库名不同，需同步修改：
+> ⚠️ 当前配置为**项目级**（`/csd/`）。如果你的仓库名不同，需同步修改：
 > 1. `.github/workflows/deploy-pages.yml` → `VITE_BASE_URL`
 > 2. `public/404.html` → `var base = '/你的仓库名'`
 
@@ -63,7 +63,7 @@ Workers & Pages 页面右侧边栏。
 
 ### 步骤 3 — 创建 Pages 项目
 
-在 Cloudflare Dashboard 创建项目，**名称必须为 `fortune-forge-fest`**（与 workflow 一致）。
+在 Cloudflare Dashboard 创建项目，**名称必须为 `csd`**（与 workflow 一致）。
 
 ### 步骤 4 — 添加 GitHub Secrets
 

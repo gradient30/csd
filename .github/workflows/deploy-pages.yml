@@ -35,7 +35,7 @@ jobs:
         env:
           # 项目级 Pages：base 必须与 GitHub 仓库名一致（含前后斜杠）
           # 用户级 Pages（仓库名为 username.github.io）：改为 /
-          VITE_BASE_URL: /fortune-forge-fest/
+          VITE_BASE_URL: /csd/
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
