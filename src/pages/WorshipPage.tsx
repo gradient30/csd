@@ -3,9 +3,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { addIncense, getProfile, updateTodayRecord, getTodayRecord } from "@/lib/store";
+import { addIncense, getProfile, updateTodayRecord, getTodayRecord, unlockRandomCard, checkBadges } from "@/lib/store";
 import { playBell, playCoin, playFirecracker, playDrum, playGong, playSuccess } from "@/lib/audio";
-import { RIDDLES } from "@/lib/ceremony";
+import { RIDDLES, CARD_BACKGROUNDS } from "@/lib/ceremony";
+import { toast } from "sonner";
+
+function notifyCardUnlock(cardId: string | null) {
+  if (!cardId) return;
+  const card = CARD_BACKGROUNDS.find((c) => c.id === cardId);
+  if (card) toast.success(`🃏 解锁新卡：${card.name}！`, { duration: 3000 });
+}
+
+function notifyBadges(newBadges: string[]) {
+  if (newBadges.length === 0) return;
+  // checkBadges already imported BADGE_DEFS but we keep it simple
+  newBadges.forEach((id) => toast.success(`🏅 获得新徽章！`, { duration: 2500 }));
+}
 
 // Worship altar
 function WorshipAltar() {
@@ -31,6 +44,12 @@ function WorshipAltar() {
     if (action === "incense") { playBell(); addParticle("🔥"); }
     if (action === "gold") { playCoin(); addParticle("💰"); }
     if (action === "firecracker") { playFirecracker(); addParticle("🧨"); }
+
+    // Card unlock: first time worship >= 50
+    if (newScore >= 50 && score < 50) {
+      notifyCardUnlock(unlockRandomCard());
+    }
+    notifyBadges(checkBadges());
   };
 
   return (
@@ -51,12 +70,10 @@ function WorshipAltar() {
             </motion.div>
           ))}
         </AnimatePresence>
-
         <div className="text-6xl">🏛️</div>
         <p className="mt-2 text-sm text-gold-light/70">财神祭坛</p>
         <p className="mt-1 text-lg font-bold text-gold">今日香火：{score}</p>
       </div>
-
       <div className="grid grid-cols-3 gap-3">
         <Button onClick={() => doAction("incense", 5)} className="flex-col gap-1 bg-crimson py-6 text-foreground hover:bg-crimson-light">
           <span className="text-2xl">🕯️</span>
@@ -75,7 +92,7 @@ function WorshipAltar() {
   );
 }
 
-// Riddle game with answer input and scoring
+// Riddle game
 function RiddleGame() {
   const [currentIdx, setCurrentIdx] = useState(Math.floor(Math.random() * RIDDLES.length));
   const [showAnswer, setShowAnswer] = useState(false);
@@ -109,6 +126,11 @@ function RiddleGame() {
       setRiddleScore(newScore);
       addIncense(15);
       updateTodayRecord({ riddlesSolved: newScore });
+      // Card unlock at 5 riddles
+      if (newScore >= 5 && riddleScore < 5) {
+        notifyCardUnlock(unlockRandomCard());
+      }
+      notifyBadges(checkBadges());
     } else {
       playBell();
     }
@@ -120,21 +142,15 @@ function RiddleGame() {
         <p className="text-sm text-muted-foreground">已答对：{riddleScore} 题</p>
         <p className="text-sm font-bold text-gold">累计香火 +{riddleScore * 15}</p>
       </div>
-
       <div className="text-center">
-        <motion.div
-          animate={shaking ? { rotate: [-5, 5, -5, 5, 0] } : {}}
-          className="mb-4 inline-block text-6xl"
-        >
+        <motion.div animate={shaking ? { rotate: [-5, 5, -5, 5, 0] } : {}} className="mb-4 inline-block text-6xl">
           🎋
         </motion.div>
       </div>
-
       <div className="rounded-xl border border-gold/20 bg-card p-6 text-center">
         <p className="mb-2 text-xs text-muted-foreground">第 {currentIdx + 1} 签</p>
         <p className="mb-4 text-lg text-foreground">{riddle.question}</p>
         <p className="mb-4 text-sm text-muted-foreground">提示：{riddle.hint}</p>
-
         {!showAnswer ? (
           <div className="flex gap-2">
             <Input
@@ -144,9 +160,7 @@ function RiddleGame() {
               placeholder="输入你的答案…"
               className="border-gold/30 bg-background text-center"
             />
-            <Button onClick={submitAnswer} className="bg-gold text-background hover:bg-gold-light">
-              提交
-            </Button>
+            <Button onClick={submitAnswer} className="bg-gold text-background hover:bg-gold-light">提交</Button>
           </div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -164,15 +178,12 @@ function RiddleGame() {
           </motion.div>
         )}
       </div>
-
-      <Button onClick={shakeSign} className="w-full bg-gold text-background hover:bg-gold-light">
-        🎋 摇下一签
-      </Button>
+      <Button onClick={shakeSign} className="w-full bg-gold text-background hover:bg-gold-light">🎋 摇下一签</Button>
     </div>
   );
 }
 
-// Horse game with accurate timer
+// Horse game
 function HorseGame() {
   const [playing, setPlaying] = useState(false);
   const [score, setScore] = useState(0);
@@ -195,7 +206,6 @@ function HorseGame() {
     playGong();
   }, []);
 
-  // Separate accurate 1-second timer
   useEffect(() => {
     if (!playing) return;
     const timer = setInterval(() => {
@@ -203,8 +213,14 @@ function HorseGame() {
         if (t <= 1) {
           playingRef.current = false;
           setPlaying(false);
-          addIncense(scoreRef.current * 2);
-          updateTodayRecord({ horseGameScore: scoreRef.current });
+          const finalScore = scoreRef.current;
+          addIncense(finalScore * 2);
+          updateTodayRecord({ horseGameScore: finalScore });
+          // Card unlock at 10+
+          if (finalScore >= 10) {
+            notifyCardUnlock(unlockRandomCard());
+          }
+          notifyBadges(checkBadges({ horseScore: finalScore }));
           return 0;
         }
         return t - 1;
@@ -213,19 +229,14 @@ function HorseGame() {
     return () => clearInterval(timer);
   }, [playing]);
 
-  // Separate game loop for coin movement (faster tick)
   useEffect(() => {
     if (!playing) return;
     let coinId = 0;
     const gameLoop = setInterval(() => {
       if (!playingRef.current) return;
-
-      // Spawn coins
       if (Math.random() > 0.5) {
         setCoins((prev) => [...prev, { id: coinId++, x: 100, y: 10 + Math.random() * 75 }]);
       }
-
-      // Move coins & check collision
       setCoins((prev) =>
         prev
           .map((c) => ({ ...c, x: c.x - 4 }))
@@ -257,20 +268,9 @@ function HorseGame() {
       >
         {playing && (
           <>
-            <div
-              className="absolute text-3xl transition-all duration-150"
-              style={{ left: "10%", top: `${horseY}%`, transform: "translateY(-50%)" }}
-            >
-              🐴
-            </div>
+            <div className="absolute text-3xl transition-all duration-150" style={{ left: "10%", top: `${horseY}%`, transform: "translateY(-50%)" }}>🐴</div>
             {coins.map((c) => (
-              <div
-                key={c.id}
-                className="absolute text-xl"
-                style={{ left: `${c.x}%`, top: `${c.y}%` }}
-              >
-                💰
-              </div>
+              <div key={c.id} className="absolute text-xl" style={{ left: `${c.x}%`, top: `${c.y}%` }}>💰</div>
             ))}
             <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded-lg bg-background/90 px-4 py-1.5 text-sm font-bold">
               <span className="text-crimson">⏱ {timeLeft}s</span>
@@ -289,15 +289,13 @@ function HorseGame() {
         )}
       </div>
       {!playing && (
-        <Button onClick={startGame} className="w-full bg-gold text-background hover:bg-gold-light">
-          🐴 开始飞马接元宝
-        </Button>
+        <Button onClick={startGame} className="w-full bg-gold text-background hover:bg-gold-light">🐴 开始飞马接元宝</Button>
       )}
     </div>
   );
 }
 
-// Sweep poverty game with prominent scoring
+// Sweep poverty game
 function SweepGame() {
   const [items, setItems] = useState([
     { id: 1, text: "穷", x: 30, y: 40, swept: false },
@@ -308,6 +306,7 @@ function SweepGame() {
   ]);
   const [score, setScore] = useState(0);
   const [totalIncense, setTotalIncense] = useState(0);
+  const [rounds, setRounds] = useState(0);
 
   const sweepItem = (id: number) => {
     playFirecracker();
@@ -321,6 +320,14 @@ function SweepGame() {
 
   const allSwept = items.every((i) => i.swept);
 
+  useEffect(() => {
+    if (allSwept && score > 0) {
+      const newRounds = rounds + 1;
+      setRounds(newRounds);
+      notifyBadges(checkBadges({ sweepRounds: 1 }));
+    }
+  }, [allSwept]);
+
   const reset = () => {
     setItems((prev) => prev.map((it) => ({ ...it, swept: false, x: 20 + Math.random() * 60, y: 20 + Math.random() * 60 })));
     setScore(0);
@@ -328,17 +335,12 @@ function SweepGame() {
 
   return (
     <div className="space-y-4">
-      {/* Score banner */}
       <div className="flex items-center justify-between rounded-lg bg-gold/10 px-4 py-2">
         <p className="text-sm text-foreground">本轮得分：<span className="font-bold text-gold">{score}</span></p>
         <p className="text-sm text-foreground">累计香火：<span className="font-bold text-gold">+{totalIncense}</span></p>
       </div>
-
       <div className="relative h-[250px] overflow-hidden rounded-xl border border-gold/20 bg-card">
-        <div className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-l border-dashed border-gold/20 bg-gold/5 text-xs text-gold/50">
-          🚪出门
-        </div>
-
+        <div className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-l border-dashed border-gold/20 bg-gold/5 text-xs text-gold/50">🚪出门</div>
         <AnimatePresence>
           {items.map((item) =>
             !item.swept ? (
@@ -357,7 +359,6 @@ function SweepGame() {
             ) : null
           )}
         </AnimatePresence>
-
         {allSwept && (
           <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="flex h-full flex-col items-center justify-center">
             <p className="text-4xl">🎉</p>
@@ -366,12 +367,9 @@ function SweepGame() {
           </motion.div>
         )}
       </div>
-
       <div className="flex gap-3">
         <p className="flex-1 self-center text-sm text-muted-foreground">👆 点击扫除穷字，每个 +10 香火</p>
-        <Button onClick={reset} variant="outline" size="sm" className="border-gold/30 text-gold">
-          🔄 重新来
-        </Button>
+        <Button onClick={reset} variant="outline" size="sm" className="border-gold/30 text-gold">🔄 重新来</Button>
       </div>
     </div>
   );
@@ -385,9 +383,7 @@ export default function WorshipPage() {
       <div className="py-20 text-center">
         <p className="text-2xl">🏛️</p>
         <p className="mt-4 text-muted-foreground">请先完成封神仪式</p>
-        <Button onClick={() => window.location.href = "/temple/ceremony"} className="mt-4 bg-gold text-background">
-          去封神
-        </Button>
+        <Button onClick={() => window.location.href = "/temple/ceremony"} className="mt-4 bg-gold text-background">去封神</Button>
       </div>
     );
   }

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { getProfile, saveProfile, addIncense, LEVEL_NAMES } from "@/lib/store";
+import { getProfile, saveProfile, addIncense, LEVEL_NAMES, BADGE_DEFS } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { playCoin, playBell } from "@/lib/audio";
-import { Home, Heart, Sparkles } from "lucide-react";
+import { Home, Heart } from "lucide-react";
+import DailyTasks from "@/components/DailyTasks";
+import FortuneArchive from "@/components/FortuneArchive";
 
 const SANCTUARY_ITEMS = [
   { id: "incense_burner", name: "香炉", emoji: "🏺", cost: 50 },
@@ -67,6 +69,9 @@ export default function SanctuaryPage() {
         我的道场
       </h2>
 
+      {/* Daily tasks */}
+      <DailyTasks />
+
       {/* Level & Progress */}
       <div className="rounded-xl border border-gold/20 bg-card p-6">
         <div className="mb-2 flex items-center justify-between">
@@ -79,6 +84,24 @@ export default function SanctuaryPage() {
           <span>下一级 {nextThreshold}</span>
         </div>
       </div>
+
+      {/* Badges */}
+      {profile.badges.length > 0 && (
+        <div className="rounded-xl border border-gold/20 bg-card p-4">
+          <p className="mb-3 text-sm font-medium text-gold">🏅 已获徽章</p>
+          <div className="flex flex-wrap gap-2">
+            {profile.badges.map((bid) => {
+              const badge = BADGE_DEFS.find((b) => b.id === bid);
+              return badge ? (
+                <div key={bid} className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs">
+                  <span>{badge.emoji}</span>
+                  <span className="text-gold">{badge.name}</span>
+                </div>
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tiger pet */}
       <div className="rounded-xl border border-gold/20 bg-card p-6 text-center">
@@ -109,8 +132,6 @@ export default function SanctuaryPage() {
       {/* Sanctuary items */}
       <div className="rounded-xl border border-gold/20 bg-card p-6">
         <p className="mb-4 text-sm font-medium text-gold">道场装饰</p>
-
-        {/* Owned items display */}
         {profile.sanctuaryItems.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-3 rounded-lg bg-muted p-4">
             {profile.sanctuaryItems.map((id) => {
@@ -124,8 +145,6 @@ export default function SanctuaryPage() {
             })}
           </div>
         )}
-
-        {/* Shop */}
         <div className="grid grid-cols-3 gap-2">
           {SANCTUARY_ITEMS.map((item) => {
             const owned = profile.sanctuaryItems.includes(item.id);
@@ -150,6 +169,9 @@ export default function SanctuaryPage() {
           })}
         </div>
       </div>
+
+      {/* Fortune Archive */}
+      <FortuneArchive />
     </div>
   );
 }
