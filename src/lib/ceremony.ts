@@ -89,6 +89,40 @@ export const RIDDLES = [
   { question: "比干是哪个朝代的人？", answer: "商朝", hint: "纣王时期" },
   { question: "范蠡辅佐的是谁？", answer: "勾践", hint: "卧薪尝胆" },
   { question: "刘海戏金蟾中金蟾口衔什么？", answer: "铜钱", hint: "招财象征" },
+  // 文财神 vs 武财神
+  { question: "文财神通常指哪两位？", answer: "比干和范蠡", hint: "一忠一商" },
+  { question: "武财神除了赵公明，还有谁？", answer: "关公", hint: "义薄云天" },
+  { question: "赵公明的全称是什么？", answer: "金龙如意正一龙虎玄坛真君", hint: "道教封号" },
+  { question: "比干被称为文财神是因为什么？", answer: "无心偏私", hint: "被挖心后公正无私" },
+  { question: "范蠡经商成功后人称他什么？", answer: "陶朱公", hint: "隐居陶地" },
+  // 传统节俗
+  { question: "元宵节又叫什么节？", answer: "上元节", hint: "道教三元" },
+  { question: "春联最早叫什么？", answer: "桃符", hint: "挂在门上的桃木板" },
+  { question: "门神最常见的两位是谁？", answer: "秦叔宝和尉迟恭", hint: "唐代名将" },
+  { question: "除夕夜为什么要守岁？", answer: "驱赶年兽", hint: "传说怪兽" },
+  { question: "正月十五吃什么传统食物？", answer: "汤圆/元宵", hint: "团圆之意" },
+  { question: "腊月二十三祭的是哪位神？", answer: "灶王爷", hint: "上天言好事" },
+  { question: "贴春联时上联贴在哪边？", answer: "右边", hint: "面对大门的右手边" },
+  // 成语与财富
+  { question: "'日进斗金'中'斗'是什么？", answer: "量器", hint: "古代量粮食的工具" },
+  { question: "'招财进宝'四字合写成一个字像什么？", answer: "一个合体字", hint: "民间创造的吉祥字" },
+  { question: "成语'腰缠万贯'的'贯'指什么？", answer: "一千文铜钱", hint: "古代货币单位" },
+  { question: "'财源广进'通常和哪四个字对仗？", answer: "生意兴隆", hint: "商铺春联" },
+  { question: "'一本万利'最早出自哪里？", answer: "战国策", hint: "古代典籍" },
+  // 生肖知识
+  { question: "十二生肖中排第一的是？", answer: "鼠", hint: "子鼠" },
+  { question: "生肖中唯一的虚构动物是？", answer: "龙", hint: "辰龙" },
+  { question: "为什么猫不在十二生肖中？", answer: "传说被鼠骗了没赶上", hint: "民间故事" },
+  { question: "午时对应的生肖是什么？", answer: "马", hint: "午马" },
+  { question: "本命年要穿什么颜色？", answer: "红色", hint: "辟邪" },
+  // 更多财神文化
+  { question: "五路财神的'五路'指什么？", answer: "东南西北中", hint: "五个方位" },
+  { question: "初五接财神要放鞭炮是为什么？", answer: "抢路头，越早越好", hint: "争先恐后" },
+  { question: "供品中为什么要用鲤鱼？", answer: "鲤鱼跳龙门，寓意飞黄腾达", hint: "吉祥寓意" },
+  { question: "哪种植物被称为'摇钱树'？", answer: "金钱树", hint: "常绿植物" },
+  { question: "貔貅为什么被视为招财瑞兽？", answer: "只进不出", hint: "有口无肛" },
+  { question: "古代商铺开业要做的第一件事是？", answer: "放鞭炮", hint: "开门大吉" },
+  { question: "财神庙中常见的对联上联是？", answer: "生意兴隆通四海", hint: "经典对联" },
 ];
 
 // Card templates

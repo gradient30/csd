@@ -7,8 +7,12 @@ import { ZODIAC_LIST, PROFESSIONS, getProfile, saveProfile, UserProfile } from "
 import { generateTitle, generateRadar, generatePoem } from "@/lib/ceremony";
 import { playSuccess, playBell, playGong } from "@/lib/audio";
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from "recharts";
-import { Sparkles, Download, ChevronRight, ChevronLeft } from "lucide-react";
+import { Sparkles, Download, ChevronRight, ChevronLeft, Zap } from "lucide-react";
 import { CeremonyCard } from "@/components/CeremonyCard";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const WISHES = ["升职加薪", "生意兴隆", "学业有成", "健康平安", "桃花旺旺", "六六大顺"];
 
@@ -24,8 +28,34 @@ export default function CeremonyPage() {
     wish: existingProfile?.wish || "",
   });
   const [profile, setProfile] = useState<UserProfile | null>(existingProfile);
+  const [showQuickConfirm, setShowQuickConfirm] = useState(false);
 
   const canProceed = form.nickname && form.zodiac && form.profession && form.wish;
+
+  const handleQuickGenerate = () => {
+    const randomZodiac = ZODIAC_LIST[Math.floor(Math.random() * ZODIAC_LIST.length)];
+    const randomProfession = PROFESSIONS[Math.floor(Math.random() * PROFESSIONS.length)];
+    const randomWish = WISHES[Math.floor(Math.random() * WISHES.length)];
+    const quickForm = { nickname: "有缘人", age: "25", zodiac: randomZodiac, profession: randomProfession, hobby: "", wish: randomWish };
+    setForm(quickForm);
+
+    playBell();
+    const title = generateTitle(randomZodiac, randomProfession);
+    const radarStats = generateRadar(randomProfession, randomZodiac);
+    const poem = generatePoem("有缘人");
+
+    const newProfile: UserProfile = {
+      nickname: "有缘人", age: 25, zodiac: randomZodiac, profession: randomProfession,
+      hobby: "", wish: randomWish, title, radarStats, poem,
+      createdAt: new Date().toISOString(), level: 0, incense: 0,
+      consecutiveDays: 1, lastLoginDate: new Date().toISOString().split("T")[0],
+      cards: ["horse_fortune"], badges: [], sanctuaryItems: [],
+      tigerFood: 0, tigerLevel: 0,
+    };
+    saveProfile(newProfile);
+    setProfile(newProfile);
+    setTimeout(() => { playSuccess(); setStep(3); }, 500);
+  };
 
   const handleGenerate = () => {
     playBell();
@@ -166,7 +196,31 @@ export default function CeremonyPage() {
               >
                 下一步 <ChevronRight className="h-4 w-4" />
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowQuickConfirm(true)}
+                className="w-full border-gold/30 text-gold hover:bg-gold/10"
+              >
+                <Zap className="mr-1 h-4 w-4" /> 一键封神
+              </Button>
             </div>
+
+            <AlertDialog open={showQuickConfirm} onOpenChange={setShowQuickConfirm}>
+              <AlertDialogContent className="border-gold/30 bg-card">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-gold">🙏 心诚则灵</AlertDialogTitle>
+                  <AlertDialogDescription className="text-foreground/80">
+                    亲手填写信息，财神更知你心意。一键封神将使用随机信息为你生成封号，确定要跳过吗？
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-border">我再想想</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleQuickGenerate} className="bg-gold text-background hover:bg-gold-light">
+                    直接封神！
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </motion.div>
         )}
 
