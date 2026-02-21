@@ -1,9 +1,11 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Flame, Trophy, Home, BookOpen, Volume2, VolumeX, ArrowLeft } from "lucide-react";
 import { isMuted, setMuted } from "@/lib/audio";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GoldParticles } from "@/components/GoldParticles";
+import { checkLogin } from "@/lib/store";
+import { toast } from "sonner";
 
 const tabs = [
   { path: "/temple/ceremony", label: "封神仪式", icon: Sparkles },
@@ -17,6 +19,15 @@ export default function TempleLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [muted, setMutedState] = useState(isMuted());
+
+  useEffect(() => {
+    const result = checkLogin();
+    if (result.isNewDay && result.reward > 0) {
+      toast.success(`🔥 连续登录 ${result.consecutiveDays} 天！获得 ${result.reward} 香火`, {
+        duration: 3000,
+      });
+    }
+  }, []);
 
   const toggleMute = () => {
     const next = !muted;

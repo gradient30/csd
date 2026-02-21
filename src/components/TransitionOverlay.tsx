@@ -1,30 +1,47 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
-const effects = ["💰", "🧨", "☁️", "🐴", "🎆"];
+interface Theme {
+  name: string;
+  emojis: string[];
+  title: string;
+  subtitle: string;
+  bgClass: string;
+}
+
+const THEMES: Theme[] = [
+  { name: "金元宝雨", emojis: ["💰", "🥇", "💎", "💰", "🪙"], title: "金元宝雨！", subtitle: "财源滚滚来...", bgClass: "bg-gold-dark/95" },
+  { name: "鞭炮漫天", emojis: ["🧨", "🎆", "🎇", "💥", "✨"], title: "炮竹齐鸣！", subtitle: "爆竹声中辞旧岁...", bgClass: "bg-crimson-dark/95" },
+  { name: "五路神驾到", emojis: ["👑", "⭐", "🌟", "✨", "💫"], title: "五路财神驾到！", subtitle: "恭迎五路财神...", bgClass: "bg-crimson-dark/95" },
+  { name: "祥云马队", emojis: ["🐴", "☁️", "🐎", "🏇", "☁️"], title: "骏马奔腾！", subtitle: "马到成功...", bgClass: "bg-ink/95" },
+  { name: "黑虎啸天", emojis: ["🐯", "🐅", "⚡", "🌙", "💨"], title: "黑虎啸天！", subtitle: "虎啸财来...", bgClass: "bg-ink-dark/95" },
+  { name: "铜钱飞舞", emojis: ["🪙", "🪙", "💫", "🪙", "✨"], title: "铜钱飞舞！", subtitle: "财运亨通...", bgClass: "bg-gold-dark/95" },
+  { name: "灯笼高挂", emojis: ["🏮", "🏮", "🎊", "🏮", "🎉"], title: "灯笼高挂！", subtitle: "红红火火...", bgClass: "bg-crimson/95" },
+  { name: "福字翻转", emojis: ["🧧", "福", "🧧", "福", "🎊"], title: "福运到！", subtitle: "福到运到财到...", bgClass: "bg-crimson-dark/95" },
+];
 
 export const TransitionOverlay = () => {
+  const theme = useMemo(() => THEMES[Math.floor(Math.random() * THEMES.length)], []);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; emoji: string; delay: number }>>([]);
 
   useEffect(() => {
-    const p = Array.from({ length: 30 }, (_, i) => ({
+    const p = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      emoji: effects[Math.floor(Math.random() * effects.length)],
+      emoji: theme.emojis[Math.floor(Math.random() * theme.emojis.length)],
       delay: Math.random() * 0.5,
     }));
     setParticles(p);
-  }, []);
+  }, [theme]);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-crimson-dark/95"
+      className={`fixed inset-0 z-[100] flex items-center justify-center ${theme.bgClass}`}
     >
-      {/* Burst particles */}
       {particles.map((p) => (
         <motion.div
           key={p.id}
@@ -42,7 +59,6 @@ export const TransitionOverlay = () => {
         </motion.div>
       ))}
 
-      {/* Center text */}
       <motion.div
         initial={{ scale: 0, rotate: -10 }}
         animate={{ scale: 1, rotate: 0 }}
@@ -50,9 +66,9 @@ export const TransitionOverlay = () => {
         className="text-center"
       >
         <p className="text-4xl font-black text-gold sm:text-5xl" style={{ textShadow: "0 0 40px hsl(45 100% 50% / 0.6)" }}>
-          财神驾到！
+          {theme.title}
         </p>
-        <p className="mt-2 text-lg text-gold-light/70">恭迎五路财神...</p>
+        <p className="mt-2 text-lg text-gold-light/70">{theme.subtitle}</p>
       </motion.div>
     </motion.div>
   );

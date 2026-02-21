@@ -1,7 +1,9 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { UserProfile } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import RedPacket from "@/components/RedPacket";
 
 interface Props {
   profile: UserProfile;
@@ -9,6 +11,8 @@ interface Props {
 
 export const CeremonyCard = ({ profile }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showShare, setShowShare] = useState(false);
+  const [showRedPacket, setShowRedPacket] = useState(false);
 
   const drawCard = useCallback(() => {
     const canvas = canvasRef.current;
@@ -98,12 +102,12 @@ export const CeremonyCard = ({ profile }: Props) => {
     // Bottom wish
     ctx.fillStyle = "#FFD700";
     ctx.font = "bold 14px 'PingFang SC', sans-serif";
-    ctx.fillText(`愿望：${profile.wish}`, w / 2, 530);
+    ctx.fillText(`愿望：${profile.wish}`, w / 2, 520);
 
     // Watermark
-    ctx.fillStyle = "rgba(255,215,0,0.2)";
-    ctx.font = "10px sans-serif";
-    ctx.fillText("抢路头·财神封神殿", w / 2, h - 18);
+    ctx.fillStyle = "rgba(255,215,0,0.35)";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText("抢路头·丙午马年·财神封神殿", w / 2, h - 18);
   }, [profile]);
 
   useEffect(() => {
@@ -120,15 +124,51 @@ export const CeremonyCard = ({ profile }: Props) => {
   };
 
   return (
-    <div className="text-center">
+    <div className="text-center space-y-3">
       <canvas
         ref={canvasRef}
         className="mx-auto rounded-xl border border-gold/30 shadow-lg"
         style={{ maxWidth: "100%", height: "auto" }}
       />
-      <Button onClick={handleDownload} className="mt-4 bg-gold text-background hover:bg-gold-light">
-        <Download className="h-4 w-4" /> 保存财神卡
+      <div className="flex justify-center gap-3">
+        <Button onClick={handleDownload} className="bg-gold text-background hover:bg-gold-light">
+          <Download className="h-4 w-4" /> 保存财神卡
+        </Button>
+        <Button onClick={() => setShowShare(true)} variant="outline" className="border-gold/30 text-gold">
+          <Share2 className="h-4 w-4" /> 分享
+        </Button>
+      </div>
+      <Button onClick={() => setShowRedPacket(true)} variant="outline" className="border-crimson/30 text-crimson">
+        🧧 生成利市红包
       </Button>
+
+      {/* Share dialog */}
+      <Dialog open={showShare} onOpenChange={setShowShare}>
+        <DialogContent className="border-gold/20 bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-gold">分享封神卡</DialogTitle>
+            <DialogDescription>长按保存图片，分享给好友</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-center text-sm text-muted-foreground">
+            <p>📱 保存图片后，打开微信/朋友圈分享</p>
+            <p>📋 或截图直接发送给好友</p>
+            <Button onClick={handleDownload} className="w-full bg-gold text-background hover:bg-gold-light">
+              <Download className="h-4 w-4" /> 保存图片
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Red packet dialog */}
+      <Dialog open={showRedPacket} onOpenChange={setShowRedPacket}>
+        <DialogContent className="border-gold/20 bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-gold">🧧 利市红包</DialogTitle>
+            <DialogDescription>生成祝福红包图片，送给好友</DialogDescription>
+          </DialogHeader>
+          <RedPacket />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
